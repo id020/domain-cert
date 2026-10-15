@@ -1,0 +1,77 @@
+# 中文注释：所有时间在数据库中按 UTC 保存，业务提醒使用上海时区。
+spring:
+  application:
+    name: domain-cert
+  datasource:
+    # 本地运行使用 localhost；Compose 只覆盖 JDBC 主机名以连接 mysql 服务。
+    url: jdbc:mysql://localhost:3306/domain_cert?serverTimezone=UTC
+    username: root
+    # 按本项目的单机部署要求固定在 YAML；上线前应替换为受保护的生产密钥。
+    password: 123456
+  jpa:
+    hibernate:
+      # 数据表由 Flyway 管理，禁止 Hibernate 自动改表。
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  mail:
+    # SMTP 参数统一在 application.yml 配置；默认关闭认证，避免未配置时误连外部服务。
+    host: smtp.qq.com
+    port: 587
+    username: "vip12233@foxmail.com"
+    password: "iamhybzrbzekbjae"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true # 关键！强制要求TLS加密，解决530
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 2MB
+app:
+  # 首次启动时从此处读取内置账户，并以 BCrypt 哈希写入 users 表。
+  bootstrap-users:
+    admin:
+      password: Admin@Northstar2026!
+    operator:
+      password: Operator@Northstar2026!
+    viewer:
+      password: Viewer@Northstar2026!
+  alert:
+    recipients: ""
+  mail:
+    from: vip12233@foxmail.com
+  certificate:
+    # 32 字节 Base64 AES-256 密钥；此演示密钥需在正式部署前替换并妥善备份。
+    encryption-key: PkflYdm8ASvjNU5z1PwuSawpiz+FP0OcKwhpbUK1Jv4=
+  settings:
+    # 配置密文的根保护密钥；保管和备份此值，动态 SMTP 密码及证书数据密钥都由它加密。
+    protection-key: FBfLsE05I/kFCxOJr0ouEx3LZlxQX+mW1ehdiXVrlW8=
+  acme:
+    # 默认使用 Let's Encrypt 正式目录；联调时可切换为 acme-staging-v02.api.letsencrypt.org。
+    directory-url: https://acme-v02.api.letsencrypt.org/directory
+    contact-email: admin@example.com
+    # 账户私钥只用于 ACME 身份认证，持久化到应用数据卷，不写入数据库。
+    account-key-path: ./data/acme-account.pem
+    challenge-timeout-seconds: 180
+server:
+  port: 8080
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    # SMTP 是可选集成；未配置邮件服务不应阻断应用健康检查。
+    mail:
+      enabled: false
